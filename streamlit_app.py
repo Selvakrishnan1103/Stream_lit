@@ -1,22 +1,20 @@
-# app.py
-from flask import Flask, request, jsonify
-from flask_cors import CORS
-import joblib
+import streamlit as st
 import numpy as np
-import os, traceback
+import joblib
+import tempfile
 from PIL import Image
 from moviepy.editor import VideoFileClip
-
-# Keras imports
 from keras.applications.resnet50 import ResNet50, preprocess_input
 from keras.preprocessing import image
 
-app = Flask(__name__)
-CORS(app)
-
-# Load ML model and feature extractor
+# Load your trained model
 classification_model = joblib.load('classification_visual_only.pkl')
+
+# Load ResNet50 model for feature extraction
 resnet_model = ResNet50(weights='imagenet', include_top=False, pooling='avg')
+
+st.title("🎓 Study Video Classifier (Visual Only)")
+st.write("Upload a video to check if it’s **Educational** or **Non-Educational**.")
 
 def extract_video_frames(video_path, interval=5):
     """Extract frames at every `interval` seconds."""
@@ -26,6 +24,7 @@ def extract_video_frames(video_path, interval=5):
         frame = video_clip.get_frame(t)
         frame_image = Image.fromarray(frame)
         frames.append(frame_image)
+    video_clip.close()
     return frames
 
 def extract_visual_features(video_path):
@@ -43,22 +42,23 @@ def extract_visual_features(video_path):
 
     return np.mean(frame_features, axis=0)
 
-@app.route('/classify', methods=['POST'])
-def classify_video():
-    try:
-        video_file = request.files['video']
-        filename = video_file.filename
-        temp_path = f'temp_{filename}'
-        video_file.save(temp_path)
+# File uploader
+uploaded_video = st.file_uploader("Upload a video", type=["mp4", "mov", "avi", "mkv"])
 
+if uploaded_video is not None:
+    st.video(uploaded_video)
+    st.info("⏳ Processing video... This may take a few seconds.")
+
+    # Save the video temporarily
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp4") as tmp_file:
+        tmp_file.write(uploaded_video.read())
+        temp_path = tmp_file.name
+
+    try:
         visual_features = extract_visual_features(temp_path)
         prediction = classification_model.predict([visual_features])[0]
 
-        os.remove(temp_path)
-        return jsonify({'prediction': int(prediction)})
-    except Exception as e:
-        print(traceback.format_exc())
-        return jsonify({'error': str(e)}), 500
+        st.success(f"✅ Prediction: **{'Educational' if prediction == 1 else 'Non-Educational'}**")
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    except Exception as e:
+        st.error(f"❌ Error: {e}")
