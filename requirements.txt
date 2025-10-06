@@ -1,7 +1,8 @@
 streamlit
 numpy
-Pillow
-moviepy.editor
+Pillow==10.3.0
+moviepy==1.0.3
 joblib
-tensorflow
-keras
+tensorflow==2.16.1
+keras==3.3.3
+imageio[ffmpeg]
