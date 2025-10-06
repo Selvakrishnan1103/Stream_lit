@@ -1,0 +1,7 @@
+streamlit
+numpy
+Pillow
+moviepy
+joblib
+tensorflow
+keras
