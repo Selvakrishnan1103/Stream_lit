@@ -1,7 +1,7 @@
 streamlit
 numpy
 Pillow
-moviepy
+moviepy.editor
 joblib
 tensorflow
 keras
